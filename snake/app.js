@@ -28,8 +28,10 @@ gameControls.addEventListener("click", (e) => {
 
 let keyPress = document.addEventListener("keydown", (e) => {
   if (e.keyCode === 38) {
+    e.preventDefault();
     turnSnake("UP");
   } else if (e.keyCode === 40) {
+    e.preventDefault();
     turnSnake("DOWN");
   } else if (e.keyCode === 37) {
     turnSnake("LEFT");

@@ -1,7 +1,7 @@
-@import url("https://fonts.googleapis.com/css?family=Baloo+2");
+@import url("https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@500&display=swap");
 
 * {
-  font-family: "Baloo 2", cursive;
+  font-family: "Roboto Mono", monospace;
   color: #2078df;
 }
 
@@ -15,21 +15,25 @@ body {
 main {
   display: grid;
   grid-template: repeat(12, 1fr) / repeat(12, 1fr);
-  width: 40rem;
-  height: 40rem;
+  width: 35rem;
+  height: 35rem;
+
   background-color: #015988;
 }
 
 h1 {
-  margin: 0 auto;
+  margin: 0;
+  margin-bottom: 1rem;
 }
 
 h3 {
-  height: 3rem;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
 }
 
 #scoreStrip {
-  height: auto;
+  margin-bottom: auto;
 }
 
 .cell {
@@ -52,6 +56,7 @@ button {
 #controls {
   display: none;
   grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+  margin: 1rem;
 }
 
 button.up {

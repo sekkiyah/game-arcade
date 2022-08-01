@@ -3,17 +3,22 @@ const gameOver = document.getElementById("game-over");
 const playerTurn = document.getElementById("player-turn");
 const winnerEle = document.getElementById("winner");
 
-const startButton = document.querySelector(".start-game");
-startButton.addEventListener("click", () => {
-  changePhaseTo(PLAYING);
-});
-
 const resetButton = document.querySelector(".reset-game");
 resetButton.addEventListener("click", () => {
   resetInitialState();
   changePhaseTo(NEW);
   clearHTMLBoard();
   updateHTMLBoard();
+});
+
+const playerButtons = document.querySelectorAll(".player-select");
+playerButtons.forEach((button) => {
+  button.addEventListener("click", (e) => {
+    if (e.target.innerText === "COMPUTER") {
+      initializeComputerPlayer();
+    }
+    changePhaseTo(PLAYING);
+  });
 });
 
 const board = document.getElementById("board");
@@ -37,6 +42,7 @@ const NEW = "NEW";
 const DRAW = "DRAW";
 const PLAYER_X = "Player X Wins!";
 const PLAYER_O = "Player O Wins!";
+const COMPUTER_O = "Computer O Wins!";
 
 function resetInitialState() {
   (gameState.players = ["O", "X"]),
@@ -44,7 +50,8 @@ function resetInitialState() {
     (gameState.currentPlayer =
       gameState.players[Math.floor(Math.random() * 2)]),
     (gameState.phase = NEW),
-    (gameState.winner = null);
+    (gameState.winner = null),
+    (gameState.hasAiPlayer = false);
 }
 
 function newBoard() {
@@ -65,11 +72,11 @@ function changePhaseTo(newPhase) {
     prompt.style.display = "none";
     playerTurn.style.display = "block";
   } else if (gameState.phase === GAME_OVER) {
-    // clearHTMLBoard();
     playerTurn.style.display = "none";
     gameOver.style.display = "block";
-    console.log(gameState.winner);
+
     winnerEle.innerText = gameState.winner;
+    clearInterval(aiPlayer.interval);
   }
 }
 
@@ -77,7 +84,7 @@ function processPlayerMove(y, x) {
   if (gameState.phase !== PLAYING) {
     return;
   } else if (gameState.board[y][x]) {
-    console.log("Illegal move");
+    alert("Illegal move");
   } else {
     gameState.board[y][x] = gameState.currentPlayer;
     checkBoard();
@@ -87,9 +94,18 @@ function processPlayerMove(y, x) {
 }
 
 function checkBoard() {
-  if (checkRows() || checkColumns() || checkDiagonals()) {
+  if (
+    checkRows(gameState.board) ||
+    checkColumns(gameState.board) ||
+    checkDiagonals(gameState.board)
+  ) {
     //If any check returns a match, declare winner
-    gameState.winner = gameState.currentPlayer === "X" ? PLAYER_X : PLAYER_O;
+    if (gameState.hasAiPlayer) {
+      gameState.winner =
+        gameState.currentPlayer === "X" ? PLAYER_X : COMPUTER_O;
+    } else {
+      gameState.winner = gameState.currentPlayer === "X" ? PLAYER_X : PLAYER_O;
+    }
     changePhaseTo(GAME_OVER);
     updateHTMLBoard();
   } else if (!hasValidMoves()) {
@@ -98,42 +114,40 @@ function checkBoard() {
   }
 }
 
-function checkRows() {
-  for (let x = 0; x < gameState.board.length; x++) {
+function checkRows(board) {
+  for (let x = 0; x < board.length; x++) {
     let rowResult = false;
-    let row = getRow(x);
+    let row = getRow(board, x);
 
     rowResult = row.every((value) => {
       return value && value === row[0]; //If every value is populated and matches index 0
     });
 
     if (rowResult) {
-      console.log("row match found");
       return true;
     }
   }
   return false;
 }
 
-function checkColumns() {
-  for (let x = 0; x < gameState.board.length; x++) {
+function checkColumns(board) {
+  for (let x = 0; x < board.length; x++) {
     let columnResult = false;
-    let column = getColumn(x);
+    let column = getColumn(board, x);
 
     columnResult = column.every((value) => {
       return value && value === column[0]; //If every value is populated and matches index 0
     });
 
     if (columnResult) {
-      console.log("column match found");
       return true;
     }
   }
   return false;
 }
 
-function checkDiagonals() {
-  let diagonals = getDiagonals();
+function checkDiagonals(board) {
+  let diagonals = getDiagonals(board);
   let diagonalResult = false;
   for (let y = 0; y < diagonals.length; y++) {
     diagonalResult = diagonals[y].every((value) => {
@@ -141,7 +155,6 @@ function checkDiagonals() {
     });
 
     if (diagonalResult) {
-      console.log("diagonal match found");
       return true;
     }
   }
@@ -163,50 +176,72 @@ function hasValidMoves() {
 const aiPlayer = {};
 
 function initializeComputerPlayer() {
+  gameState.hasAiPlayer = true;
   aiPlayer.id = "O";
-  aiPlayer.interval = setInterval(isComputerTurn(), "500");
-  // aiPlayer.board = gameState.board;
   aiPlayer.validMoves = [];
-  aiPlayer.board = gameState.board; //Board for predicting a winning computer move
+  aiPlayer.board = newBoard(); //Board for predicting a winning computer move
+  aiPlayer.interval = setInterval(() => {
+    isComputerTurn();
+  }, "1000");
 }
 
 function isComputerTurn() {
-  if (gameState.board.currentPlayer === aiPlayer.id) {
+  if (gameState.currentPlayer === aiPlayer.id) {
     processComputerTurn();
   }
 }
 
 function processComputerTurn() {
-  aiPlayer.validMoves = []; //Reset move array after every turn
+  aiPlayer.validMoves = []; //Reset valid move array after every turn
   buildValidMoves();
-  aiPlayer.board = gameState.board;
-  let move = selectComputerMove();
-  processPlayerMove(move);
+  let [y, x] = selectComputerMove();
+  processPlayerMove(y, x);
 }
 
 function buildValidMoves() {
   gameState.board.forEach((yValue, yIndex, yArray) => {
     yArray.forEach((xValue, xIndex) => {
       if (!gameState.board[yIndex][xIndex]) {
-        console.log(
-          `blank value found at yIndex value ${yIndex}, xIndex value ${xIndex}`
-        );
+        aiPlayer.validMoves.push([yIndex, xIndex]);
       }
     });
   });
 }
 
 function selectComputerMove() {
-  if (aiPlayer.validMoves > 0) {
-    aiPlayer.validMoves.forEach(() => {
-      //build predicted move board
-      //check if win and send move if found
-      //else send random move
-    });
-  } else {
-    console.log("error");
+  if (aiPlayer.validMoves.length > 0) {
+    let randomIndex = Math.floor(Math.random() * aiPlayer.validMoves.length);
+    let selectedMove = aiPlayer.validMoves[randomIndex];
+
+    for (let z = 0; z < aiPlayer.validMoves.length; z++) {
+      aiPlayer.board = rebuildPredictionBoard(gameState.board); //Reinitialize prediction board
+      let ySelected = aiPlayer.validMoves[z][0];
+      let xSelected = aiPlayer.validMoves[z][1];
+      aiPlayer.board[ySelected][xSelected] = aiPlayer.id; //Select a prediction
+
+      if (
+        checkRows(aiPlayer.board) ||
+        checkColumns(aiPlayer.board) ||
+        checkDiagonals(aiPlayer.board)
+      ) {
+        //If winning move is found, select it
+        selectedMove = aiPlayer.validMoves[z];
+        break;
+      }
+    }
+
+    return selectedMove;
   }
-  // return selected move (y, x);
+}
+
+function rebuildPredictionBoard(board) {
+  let predictionBoard = newBoard();
+  for (let y = 0; y < board.length; y++) {
+    for (let x = 0; x < board[y].length; x++) {
+      predictionBoard[y][x] = board[y][x];
+    }
+  }
+  return predictionBoard;
 }
 
 function updateHTMLBoard() {
@@ -230,43 +265,42 @@ function updateHTMLBoard() {
 
 function clearHTMLBoard() {
   document.querySelectorAll(".cell").forEach((e) => {
-    //"div"
     e.classList.remove("playerX");
     e.classList.remove("playerO");
     e.innerText = "";
   });
 }
 
-function getRow(index) {
-  return gameState.board[index];
+function getRow(board, index) {
+  return board[index];
 }
 
-function getColumn(index) {
+function getColumn(board, index) {
   let result = [];
-  for (let y = 0; y < gameState.board.length; y++) {
-    result.push(gameState.board[y][index]);
+  for (let y = 0; y < board.length; y++) {
+    result.push(board[y][index]);
   }
   return result;
 }
 
-function getDiagonals() {
+function getDiagonals(board) {
   let result = [];
   let xPos = 0;
   let yPos = 0;
   for (let n = 0; n < 2; n++) {
     result[n] = [];
-    for (let z = 0; z < gameState.board.length; z++) {
+    for (let z = 0; z < board.length; z++) {
       if (n === 0) {
-        result[n].push(gameState.board[yPos][xPos]);
+        result[n].push(board[yPos][xPos]);
         xPos++;
         yPos++;
       } else if (n === 1) {
-        result[n].push(gameState.board[yPos][xPos]);
+        result[n].push(board[yPos][xPos]);
         xPos--;
         yPos++;
       }
     }
-    xPos = gameState.board.length - 1;
+    xPos = board.length - 1;
     yPos = 0;
   }
   return result;

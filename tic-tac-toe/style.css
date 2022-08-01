@@ -28,14 +28,6 @@ main {
   align-items: center;
   font-size: 100px;
   cursor: pointer;
-  /* color: azure; */
-  /* line-height: 1.5;
-  display: inline-block;
-  vertical-align: middle;
-  font-size: 75px;
-  text-align: center;
-  padding: 2.5rem; */
-  /* vertical-align: middle; */
 }
 
 .playerX {
